@@ -134,8 +134,9 @@ type AgentsConfig struct {
 // String format: "gpt-4" (just primary, no fallbacks)
 // Object format: {"primary": "gpt-4", "fallbacks": ["claude-haiku"]}
 type AgentModelConfig struct {
-	Primary   string   `json:"primary,omitempty"`
-	Fallbacks []string `json:"fallbacks,omitempty"`
+	Primary               string   `json:"primary,omitempty"`
+	Fallbacks             []string `json:"fallbacks,omitempty"`
+	AutoModelListFallback *bool    `json:"auto_model_list_fallback,omitempty"`
 }
 
 func (m *AgentModelConfig) UnmarshalJSON(data []byte) error {
@@ -146,8 +147,9 @@ func (m *AgentModelConfig) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	type raw struct {
-		Primary   string   `json:"primary"`
-		Fallbacks []string `json:"fallbacks"`
+		Primary               string   `json:"primary"`
+		Fallbacks             []string `json:"fallbacks"`
+		AutoModelListFallback *bool    `json:"auto_model_list_fallback,omitempty"`
 	}
 	var r raw
 	if err := json.Unmarshal(data, &r); err != nil {
@@ -155,18 +157,20 @@ func (m *AgentModelConfig) UnmarshalJSON(data []byte) error {
 	}
 	m.Primary = r.Primary
 	m.Fallbacks = r.Fallbacks
+	m.AutoModelListFallback = r.AutoModelListFallback
 	return nil
 }
 
 func (m AgentModelConfig) MarshalJSON() ([]byte, error) {
-	if len(m.Fallbacks) == 0 && m.Primary != "" {
+	if len(m.Fallbacks) == 0 && m.Primary != "" && m.AutoModelListFallback == nil {
 		return json.Marshal(m.Primary)
 	}
 	type raw struct {
-		Primary   string   `json:"primary,omitempty"`
-		Fallbacks []string `json:"fallbacks,omitempty"`
+		Primary               string   `json:"primary,omitempty"`
+		Fallbacks             []string `json:"fallbacks,omitempty"`
+		AutoModelListFallback *bool    `json:"auto_model_list_fallback,omitempty"`
 	}
-	return json.Marshal(raw{Primary: m.Primary, Fallbacks: m.Fallbacks})
+	return json.Marshal(raw{Primary: m.Primary, Fallbacks: m.Fallbacks, AutoModelListFallback: m.AutoModelListFallback})
 }
 
 type AgentConfig struct {
@@ -220,21 +224,22 @@ type RoutingConfig struct {
 }
 
 type AgentDefaults struct {
-	Workspace                 string         `json:"workspace"                       env:"PICOCLAW_AGENTS_DEFAULTS_WORKSPACE"`
-	RestrictToWorkspace       bool           `json:"restrict_to_workspace"           env:"PICOCLAW_AGENTS_DEFAULTS_RESTRICT_TO_WORKSPACE"`
-	AllowReadOutsideWorkspace bool           `json:"allow_read_outside_workspace"    env:"PICOCLAW_AGENTS_DEFAULTS_ALLOW_READ_OUTSIDE_WORKSPACE"`
-	Provider                  string         `json:"provider"                        env:"PICOCLAW_AGENTS_DEFAULTS_PROVIDER"`
-	ModelName                 string         `json:"model_name"                      env:"PICOCLAW_AGENTS_DEFAULTS_MODEL_NAME"`
-	Model                     string         `json:"model,omitempty"                 env:"PICOCLAW_AGENTS_DEFAULTS_MODEL"` // Deprecated: use model_name instead
+	Workspace                 string         `json:"workspace"                          env:"PICOCLAW_AGENTS_DEFAULTS_WORKSPACE"`
+	RestrictToWorkspace       bool           `json:"restrict_to_workspace"              env:"PICOCLAW_AGENTS_DEFAULTS_RESTRICT_TO_WORKSPACE"`
+	AllowReadOutsideWorkspace bool           `json:"allow_read_outside_workspace"       env:"PICOCLAW_AGENTS_DEFAULTS_ALLOW_READ_OUTSIDE_WORKSPACE"`
+	Provider                  string         `json:"provider"                           env:"PICOCLAW_AGENTS_DEFAULTS_PROVIDER"`
+	ModelName                 string         `json:"model_name"                         env:"PICOCLAW_AGENTS_DEFAULTS_MODEL_NAME"`
+	Model                     string         `json:"model,omitempty"                    env:"PICOCLAW_AGENTS_DEFAULTS_MODEL"` // Deprecated: use model_name instead
 	ModelFallbacks            []string       `json:"model_fallbacks,omitempty"`
-	ImageModel                string         `json:"image_model,omitempty"           env:"PICOCLAW_AGENTS_DEFAULTS_IMAGE_MODEL"`
+	AutoModelListFallback     bool           `json:"auto_model_list_fallback,omitempty" env:"PICOCLAW_AGENTS_DEFAULTS_AUTO_MODEL_LIST_FALLBACK"`
+	ImageModel                string         `json:"image_model,omitempty"              env:"PICOCLAW_AGENTS_DEFAULTS_IMAGE_MODEL"`
 	ImageModelFallbacks       []string       `json:"image_model_fallbacks,omitempty"`
-	MaxTokens                 int            `json:"max_tokens"                      env:"PICOCLAW_AGENTS_DEFAULTS_MAX_TOKENS"`
-	Temperature               *float64       `json:"temperature,omitempty"           env:"PICOCLAW_AGENTS_DEFAULTS_TEMPERATURE"`
-	MaxToolIterations         int            `json:"max_tool_iterations"             env:"PICOCLAW_AGENTS_DEFAULTS_MAX_TOOL_ITERATIONS"`
-	SummarizeMessageThreshold int            `json:"summarize_message_threshold"     env:"PICOCLAW_AGENTS_DEFAULTS_SUMMARIZE_MESSAGE_THRESHOLD"`
-	SummarizeTokenPercent     int            `json:"summarize_token_percent"         env:"PICOCLAW_AGENTS_DEFAULTS_SUMMARIZE_TOKEN_PERCENT"`
-	MaxMediaSize              int            `json:"max_media_size,omitempty"        env:"PICOCLAW_AGENTS_DEFAULTS_MAX_MEDIA_SIZE"`
+	MaxTokens                 int            `json:"max_tokens"                         env:"PICOCLAW_AGENTS_DEFAULTS_MAX_TOKENS"`
+	Temperature               *float64       `json:"temperature,omitempty"              env:"PICOCLAW_AGENTS_DEFAULTS_TEMPERATURE"`
+	MaxToolIterations         int            `json:"max_tool_iterations"                env:"PICOCLAW_AGENTS_DEFAULTS_MAX_TOOL_ITERATIONS"`
+	SummarizeMessageThreshold int            `json:"summarize_message_threshold"        env:"PICOCLAW_AGENTS_DEFAULTS_SUMMARIZE_MESSAGE_THRESHOLD"`
+	SummarizeTokenPercent     int            `json:"summarize_token_percent"            env:"PICOCLAW_AGENTS_DEFAULTS_SUMMARIZE_TOKEN_PERCENT"`
+	MaxMediaSize              int            `json:"max_media_size,omitempty"           env:"PICOCLAW_AGENTS_DEFAULTS_MAX_MEDIA_SIZE"`
 	Routing                   *RoutingConfig `json:"routing,omitempty"`
 }
 

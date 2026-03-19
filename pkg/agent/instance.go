@@ -62,6 +62,7 @@ func NewAgentInstance(
 
 	model := resolveAgentModel(agentCfg, defaults)
 	fallbacks := resolveAgentFallbacks(agentCfg, defaults)
+	autoFallback := resolveAgentAutoFallback(agentCfg, defaults)
 
 	restrict := defaults.RestrictToWorkspace
 	readRestrict := restrict && !defaults.AllowReadOutsideWorkspace
@@ -147,6 +148,35 @@ func NewAgentInstance(
 	summarizeTokenPercent := defaults.SummarizeTokenPercent
 	if summarizeTokenPercent == 0 {
 		summarizeTokenPercent = 75
+	}
+
+	if autoFallback && cfg != nil && len(cfg.ModelList) > 0 {
+		targetReq := model
+		if len(fallbacks) > 0 {
+			targetReq = fallbacks[len(fallbacks)-1]
+		}
+
+		idx := -1
+		for i, mc := range cfg.ModelList {
+			if mc.ModelName == targetReq || mc.Model == targetReq {
+				idx = i
+				break
+			}
+			_, modelID := providers.ExtractProtocol(mc.Model)
+			if modelID == targetReq {
+				idx = i
+				break
+			}
+		}
+		if idx != -1 {
+			for i := idx + 1; i < len(cfg.ModelList); i++ {
+				n := cfg.ModelList[i].ModelName
+				if n == "" {
+					n = cfg.ModelList[i].Model
+				}
+				fallbacks = append(fallbacks, n)
+			}
+		}
 	}
 
 	// Resolve fallback candidates
@@ -268,6 +298,14 @@ func resolveAgentFallbacks(agentCfg *config.AgentConfig, defaults *config.AgentD
 		return agentCfg.Model.Fallbacks
 	}
 	return defaults.ModelFallbacks
+}
+
+// resolveAgentAutoFallback resolves the AutoModelListFallback feature flag for an agent.
+func resolveAgentAutoFallback(agentCfg *config.AgentConfig, defaults *config.AgentDefaults) bool {
+	if agentCfg != nil && agentCfg.Model != nil && agentCfg.Model.AutoModelListFallback != nil {
+		return *agentCfg.Model.AutoModelListFallback
+	}
+	return defaults.AutoModelListFallback
 }
 
 func compilePatterns(patterns []string) []*regexp.Regexp {
